@@ -3,91 +3,57 @@
 import time
 import sys
 
+# Global Variables --> Used for final line of output
+sat_total = 0
+unsat_total = 0
+wff_total = 0
+answers_provided = 0
+answers_correct = 0
+
+w = open("brute-" + sys.argv[1].split('.')[0] + "-output.csv","w") #Opens output file
+f = open(sys.argv[1], "r") #Opens input file
+
 def readWff():
 
     first = True
     output = []
     wff = []
 
-    f = open(sys.argv[1], "r")
-    w = open("brute-" + sys.argv[1].split('.')[0] + "-output.csv","w")
-
-    sat_total = 0
-    unsat_total = 0
-    wff_total = 0
-    answers_provided = 0
-    answers_correct = 0
-
-    for line in f:
+    for line in f: #Reads in each line of file
         
         if line[0] == 'c': #Signals new wff
 
-            if(first):
+            if(first): #First wff skips, as no other info is loaded
                 first = False
             else:
 
-                #Determines the satisfiability of the wff given all inputs
-                correctness = False
+                correctness = False #Each wff is considered false to start
 
-                start_time = time.time() * 1000000
+                start_time = time.time() * 1000000 #Start before first generated string
                 string_input = int(num_variables) * "0" #Gives starting string
 
-                while string_input != ("1" * int(num_variables) ):
+                while len(string_input) <= int(num_variables) : #While not ending string
 
-                    if verify(wff,string_input):
-                        end_time = time.time() * 1000000
+                    if verify(wff,string_input): #Try to verify brute force combo
+                        end_time = time.time() * 1000000 #If verified end timer
                         correctness = True
                         break
 
 
-                    string_input = assignments(string_input)
+                    string_input = assignments(string_input) #Generate new string
 
-                if string_input == "1" * int(num_variables):
-                    if verify(wff,string_input):
-                        end_time = time.time() * 1000000
-                        correctness = True
-                    else:
-                        end_time = time.time() * 1000000
+                if(not end_time): #If not verified --> set end_time
+                    end_time = time.time() * 1000000
 
-                if correctness:
-                    sat_prediction = "S"
-                    sat_total = sat_total + 1
-                else:
-                    sat_prediction = "U"
-                    unsat_total = unsat_total + 1
-
-                if test_answer == '?':
-                    agree_with = "0"
-                elif test_answer == sat_prediction:
-                    answers_provided += 1
-                    answers_correct += 1
-                    agree_with = "1"
-                else:
-                    answers_provided += 1
-                    agree_with = "-1"
-
-                sat_input = string_input
-
-                execution_time = end_time - start_time
-
-                wff_total += 1
-
-                w.write(f'{problem_number},{num_variables},{num_clauses},{k},{num_literals},{sat_prediction},{agree_with},{execution_time}')
-
-                if(sat_prediction == "S"):
-                    for char in sat_input:
-                        w.write(f',{char}')
-
-                w.write('\n')
+                output_func(correctness,string_input,start_time,end_time,test_answer,problem_number,num_variables,num_clauses,k,num_literals)
 
             num_literals = 0
 
-
-            # If not the first one, need to push to output
-            comment = line.split()
+            comment = line.split() #Parse Comment Line
             problem_number = comment[1]
             k = comment[2]
             test_answer = comment[3]
+            end_time = 0 #Reset End Time
 
         elif(line[0] == 'p'):
 
@@ -103,61 +69,29 @@ def readWff():
             num_literals += len(clause)
 
 
-    #Since Code finishes execution, and doesn't loop through again, need to repeat code as if new comment line 
+    #Since Code finishes execution, and doesn't loop through again, need to repeat code as if new comment line to finish last set of input
 
-    #Determines the satisfiability of the wff given all inputs
-    correctness = False
+    correctness = False #Each wff is considered false to start
 
-    start_time = time.time() * 1000000
+    start_time = time.time() * 1000000 #Start before first generated string
     string_input = int(num_variables) * "0" #Gives starting string
 
-    while string_input != ("1" * int(num_variables) ):
+    while len(string_input) <= int(num_variables) : #While not ending string
 
-        if verify(wff,string_input):
-            end_time = time.time() * 1000000
+        if verify(wff,string_input): #Try to verify brute force combo
+            end_time = time.time() * 1000000 #If verified end timer
             correctness = True
             break
 
 
-        string_input = assignments(string_input)
+        string_input = assignments(string_input) #Generate new string
 
-    if string_input == "1" * int(num_variables):
-        if verify(wff,string_input):
-            end_time = time.time() * 1000000
-            correctness = True
-        else:
-            end_time = time.time() * 1000000
+    if(not end_time): #If not verified --> set end_time
+        end_time = time.time() * 1000000
 
-    if correctness:
-        sat_prediction = "S"
-        sat_total = sat_total + 1
-    else:
-        sat_prediction = "U"
-        unsat_total = unsat_total + 1
+    output_func(correctness,string_input,start_time,end_time,test_answer,problem_number,num_variables,num_clauses,k,num_literals)
 
-    if test_answer == '?':
-        agree_with = "0"
-    elif test_answer == sat_prediction:
-        agree_with = "1"
-        answers_provided += 1
-        answers_correct += 1
-    else:
-        agree_with = "-1"
-        answers_provided += 1
-
-    sat_input = string_input
-
-    execution_time = end_time - start_time
-    wff_total += 1
-
-    file_no_ext = sys.argv[1].split('.')[0]
-
-
-    w.write(f'{problem_number},{num_variables},{num_clauses},{k},{num_literals},{sat_prediction},{agree_with},{execution_time}')
-
-    if(sat_prediction == "S"):
-        for char in sat_input:
-            w.write(f',{char}')
+    file_no_ext = sys.argv[1].split('.')[0] #Gets test file name 
 
     w.write('\n')
     
@@ -170,12 +104,13 @@ def assignments(prev_input):   #input is a string, to be interpreted as binary, 
     l = len(prev_input)
 
 
-    temp = int(prev_input, 2)
+    temp = int(prev_input, 2) #Convert binary string to base 2 int
     temp += 1
 
-    newbinary = str(bin(temp)).split("0b")[1]
+    #Parse binary string into acceptable format
+    newbinary = str(bin(temp)).split("0b")[1] 
     comp = l - len(newbinary)
-    answer = comp *"0"
+    answer = comp *"0" #Add 0s to the start of string if not present
 
     answer += newbinary
 
@@ -185,19 +120,66 @@ def assignments(prev_input):   #input is a string, to be interpreted as binary, 
 def verify(wff, assignment):
     valid = 0
 
-    for clause in wff:
-        valid = 0
-        for value in clause:
-            temp = int(assignment[abs(int(value))-1])
-            if (int(value) < 0):
-                if (temp == 0):
+    for clause in wff: #Loop through each clause of wff
+        valid = 0 #Clause assumed to be invalid to start
+        for value in clause: #Loop through each value in each clause
+
+            temp = int(assignment[abs(int(value))-1]) #Get integer value of assignment string to compare to value
+
+            if (int(value) < 0): #If negative value
+                if (temp == 0): #Temp must be a 0 (not)
                     temp = 1
-                else:
+                else: #Clause is unsatisfiable
                     temp = 0
-            valid = valid or temp
+
+            #If value is positive, the value of temp will determine if clause is true
+
+            #Only need to evaluate 1 clause for truth -> ors
+
+            if(temp): #No need to check other clauses
+                valid = 1
+                break
 
         if valid == 0:
             return False
             
     return True
+
+def output_func(correctness,string_input,start_time,end_time,test_answer,problem_number,num_variables,num_clauses,k,num_literals):
+    if correctness:
+        sat_prediction = "S"
+        global sat_total
+        sat_total = sat_total + 1
+    else:
+        sat_prediction = "U"
+        global unsat_total
+        unsat_total = unsat_total + 1
+
+    if test_answer == '?':
+        agree_with = "0"
+    elif test_answer == sat_prediction:
+        global answers_provided
+        answers_provided += 1
+        global answers_correct
+        answers_correct += 1
+        agree_with = "1"
+    else:
+        answers_provided += 1
+        agree_with = "-1"
+
+    sat_input = string_input
+
+    execution_time = end_time - start_time
+
+    global wff_total
+    wff_total += 1
+
+    w.write(f'{problem_number},{num_variables},{num_clauses},{k},{num_literals},{sat_prediction},{agree_with},{execution_time}')
+
+    if(sat_prediction == "S"):
+        for char in sat_input:
+            w.write(f',{char}')
+
+    w.write('\n')
+
 readWff()
